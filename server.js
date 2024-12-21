@@ -19,7 +19,11 @@ if (!fs.existsSync(screenshotsDir)) {
 // Função que tira o print da página e salva em arquivo
 async function printScreen() {
   try {
-    const browser = await puppeteer.launch({ headless: false });
+    // Lança o navegador com as opções de sandbox desativado
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+
     const page = await browser.newPage();
 
     // Acessa a URL desejada
@@ -59,5 +63,5 @@ app.get('/', async (req, res) => {
 
 // Inicia o servidor
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
