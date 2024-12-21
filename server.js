@@ -6,8 +6,6 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
-
 // Diretório para salvar os screenshots
 const screenshotsDir = path.join(__dirname, 'prints');
 
@@ -16,12 +14,14 @@ if (!fs.existsSync(screenshotsDir)) {
   fs.mkdirSync(screenshotsDir);
 }
 
+// Servir arquivos estáticos do diretório de screenshots
+app.use('/screenshots', express.static(screenshotsDir));
+
 // Função que tira o print da página e salva em arquivo
 async function printScreen() {
   try {
-    // Lança o navegador com as opções de sandbox desativado
     const browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
 
     const page = await browser.newPage();
@@ -32,7 +32,8 @@ async function printScreen() {
 
     // Define o caminho para salvar a imagem
     const timestamp = Date.now();
-    const filePath = path.join(screenshotsDir, `screenshot-${timestamp}.png`);
+    const fileName = `screenshot-${timestamp}.png`;
+    const filePath = path.join(screenshotsDir, fileName);
 
     // Salva o screenshot no arquivo
     await page.screenshot({ path: filePath });
@@ -41,7 +42,7 @@ async function printScreen() {
     // Fecha o navegador
     await browser.close();
 
-    return filePath;
+    return fileName; // Retorna apenas o nome do arquivo
   } catch (error) {
     console.error('Erro ao tirar o screenshot:', error);
     throw error;
@@ -51,11 +52,12 @@ async function printScreen() {
 // Endpoint '/' Inicial
 app.get('/', async (req, res) => {
   try {
-    // Gera o screenshot e retorna o caminho do arquivo
-    const screenshotPath = await printScreen();
+    // Gera o screenshot e retorna o nome do arquivo
+    const fileName = await printScreen();
 
-    // Retorna o arquivo como resposta
-    res.sendFile(screenshotPath);
+    // Retorna a URL do arquivo
+    const fileUrl = `${req.protocol}://${req.get('host')}/screenshots/${fileName}`;
+    res.json({ url: fileUrl });
   } catch (error) {
     res.status(500).json({ error: 'Erro ao gerar o screenshot' });
   }
